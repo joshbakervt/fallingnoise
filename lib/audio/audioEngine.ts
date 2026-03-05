@@ -58,6 +58,9 @@ const DEFAULTS: Required<AudioConfig> = {
   filterResonance: 0,
   filterDrive: 0,
   filterVariance: 0,
+  bruhSampleUrl: "",
+  fahhSampleUrl: "",
+  ahhSampleUrl: "",
 };
 
 export class AudioEngine {
@@ -88,6 +91,14 @@ export class AudioEngine {
 
   // Master
   private master: GainNode | null = null;
+
+  // Sample buffers
+  private bruhBuffer: AudioBuffer | null = null;
+  private bruhSampleUrl = "";
+  private fahhBuffer: AudioBuffer | null = null;
+  private fahhSampleUrl = "";
+  private ahhBuffer: AudioBuffer | null = null;
+  private ahhSampleUrl = "";
 
   async start(): Promise<void> {
     const ctx = new AudioContext();
@@ -169,7 +180,43 @@ export class AudioEngine {
     if (config.reverbDecay !== undefined && config.reverbDecay !== prevDecay) {
       this.convolver!.buffer = buildReverbIR(this.ctx, this.cfg.reverbDecay);
     }
+    if (config.bruhSampleUrl !== undefined && config.bruhSampleUrl !== this.bruhSampleUrl) {
+      this.loadBruhSample(config.bruhSampleUrl);
+    }
+    if (config.fahhSampleUrl !== undefined && config.fahhSampleUrl !== this.fahhSampleUrl) {
+      this.loadSample(config.fahhSampleUrl, "fahh");
+    }
+    if (config.ahhSampleUrl !== undefined && config.ahhSampleUrl !== this.ahhSampleUrl) {
+      this.loadSample(config.ahhSampleUrl, "ahh");
+    }
     this.applyConfig();
+  }
+
+  private async loadBruhSample(url: string): Promise<void> {
+    if (!url || !this.ctx) return;
+    this.bruhSampleUrl = url;
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      this.bruhBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+    } catch {
+      // sample failed to load — bruh mode will be silent
+    }
+  }
+
+  private async loadSample(url: string, which: "fahh" | "ahh"): Promise<void> {
+    if (!url || !this.ctx) return;
+    if (which === "fahh") this.fahhSampleUrl = url;
+    else this.ahhSampleUrl = url;
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = await this.ctx.decodeAudioData(arrayBuffer);
+      if (which === "fahh") this.fahhBuffer = buffer;
+      else this.ahhBuffer = buffer;
+    } catch {
+      // sample failed to load
+    }
   }
 
   // Builds a per-note drive → filter chain and returns the output node.
@@ -231,6 +278,29 @@ export class AudioEngine {
     if (!ctx || !this.crushBus) return;
     const freq = noteToFreq(note);
     if (!freq) return;
+
+    const sampleBuffer =
+      this.cfg.waveform === "bruh" ? this.bruhBuffer :
+      this.cfg.waveform === "fahh" ? this.fahhBuffer :
+      this.cfg.waveform === "ahh"  ? this.ahhBuffer  : null;
+
+    if (sampleBuffer !== null) {
+      if (!sampleBuffer) return;
+      const source = ctx.createBufferSource();
+      source.buffer = sampleBuffer;
+      // Pitch-shift relative to A3 (220 Hz), variance reduced to 30% of full range
+      source.playbackRate.value = 1 + (freq / 220 - 1) * 0.3;
+      const env = ctx.createGain();
+      source.connect(env);
+      const filtered = this.buildNoteFilter(ctx, env);
+      filtered.connect(this.crushBus);
+      env.gain.setValueAtTime(0.6, ctx.currentTime);
+      env.gain.setValueAtTime(0.6, ctx.currentTime + 0.3);
+      env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.5);
+      source.start(ctx.currentTime);
+      source.stop(ctx.currentTime + 2.5);
+      return;
+    }
 
     const osc = ctx.createOscillator();
     const env = ctx.createGain();

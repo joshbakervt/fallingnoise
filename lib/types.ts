@@ -47,7 +47,7 @@ export interface PhysicsConfig {
 
 export type SpeedTier = "slow" | "medium" | "fast";
 
-export type WaveformType = "sine" | "triangle" | "square" | "sawtooth";
+export type WaveformType = "sine" | "triangle" | "square" | "sawtooth" | "bruh" | "fahh" | "ahh";
 
 export type FilterType = "lpf" | "hpf" | "comb";
 
@@ -65,6 +65,9 @@ export interface AudioConfig {
   filterResonance?: number; // 0–1 → Q 0.7–25 (lpf/hpf) or feedback 0–0.95 (comb)
   filterDrive?: number;     // 0–1 pre-filter saturation
   filterVariance?: number;  // 0–1 per-note random spread on cutoff + resonance
+  bruhSampleUrl?: string;   // URL to WAV sample when waveform="bruh"
+  fahhSampleUrl?: string;   // URL to WAV sample when waveform="fahh"
+  ahhSampleUrl?: string;    // URL to WAV sample when waveform="ahh"
 }
 
 export type ColorSchemeName =
