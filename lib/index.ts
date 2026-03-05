@@ -10,6 +10,7 @@ export type {
   ScaleConfig,
   ImpactStyle,
   WaveformType,
+  FilterType,
   AudioConfig,
   FallingNoiseProps,
 } from "./types";
