@@ -73,44 +73,76 @@ export function spawnDrop(
 }
 
 function createSplash(drop: Drop, impactStyle: ImpactStyle): SplashParticle[] {
-  if (impactStyle === "starburst" || impactStyle === "flashBloom") {
-    return [];
+  switch (impactStyle) {
+    // These styles are rendered purely from impactAge + seeded PRNG — no particles needed
+    case "tendril":
+    case "inkDrop":
+    case "liquidCrown":
+      return [];
+
+    case "petalScatter": {
+      const count = 6 + Math.floor(Math.random() * 5);
+      return Array.from({ length: count }, () => {
+        const angle = (Math.random() - 0.5) * Math.PI * 1.8;
+        const speed = 0.8 + Math.random() * 1.8;
+        return {
+          x: drop.x,
+          y: drop.impactY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.2,
+          opacity: 0.65 + Math.random() * 0.35,
+          radius: 1.5 + Math.random() * 2.5,
+          rotation: Math.random() * Math.PI * 2,
+          rotVelocity: (Math.random() - 0.5) * 0.07,
+        };
+      });
+    }
+
+    case "dustCloud": {
+      const count = 20 + Math.floor(Math.random() * 10);
+      return Array.from({ length: count }, () => {
+        const angle = (Math.random() - 0.5) * Math.PI * 1.7;
+        const speed = 0.3 + Math.random() * 1.1;
+        return {
+          x: drop.x + (Math.random() - 0.5) * drop.radius * 2,
+          y: drop.impactY,
+          vx: Math.cos(angle) * speed,
+          vy: -(0.4 + Math.random() * 0.9), // initial upward drift
+          opacity: 0.2 + Math.random() * 0.45,
+          radius: 0.6 + Math.random() * 1.8,
+        };
+      });
+    }
   }
-  // geometricShatter: line-segment particles that tumble
-  const count = 7 + Math.floor(Math.random() * 6);
-  return Array.from({ length: count }, () => {
-    const angle = (Math.random() - 0.5) * Math.PI * 1.4;
-    const speed = 1.2 + Math.random() * 3.5;
-    return {
-      x: drop.x,
-      y: drop.impactY,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 1.5,
-      opacity: 0.85 + Math.random() * 0.15,
-      radius: drop.radiusX * (0.25 + Math.random() * 0.5),
-      rotation: Math.random() * Math.PI * 2,
-      rotVelocity: (Math.random() - 0.5) * 0.25,
-    };
-  });
 }
 
 export function updateDrops(
   drops: Drop[],
   canvasHeight: number,
   physics: PhysicsConfig,
-  impactStyle: ImpactStyle = "geometricShatter"
+  impactStyle: ImpactStyle = "liquidCrown"
 ): Drop[] {
   return drops
     .map((drop) => {
       if (drop.impacted) {
+        // Per-style particle physics
+        const pp: Record<ImpactStyle, { g: number; drag: number; fade: number }> = {
+          petalScatter: { g: 0.038, drag: 0.976, fade: 0.011 },
+          dustCloud:    { g: 0.010, drag: 0.988, fade: 0.007 },
+          tendril:      { g: 0, drag: 1, fade: 0 },
+          inkDrop:      { g: 0, drag: 1, fade: 0 },
+          liquidCrown:  { g: 0, drag: 1, fade: 0 },
+        };
+        const { g, drag, fade } = pp[impactStyle];
+
         const updatedSplash: SplashParticle[] = drop.splash
           .map((p) => ({
             ...p,
             x: p.x + p.vx,
             y: p.y + p.vy,
-            vy: p.vy + 0.18,
-            vx: p.vx * 0.96,
-            opacity: p.opacity - 0.03,
+            vy: p.vy + g,
+            vx: p.vx * drag,
+            opacity: p.opacity - fade,
             rotation: p.rotation !== undefined ? p.rotation + (p.rotVelocity ?? 0) : undefined,
           }))
           .filter((p) => p.opacity > 0);
@@ -152,7 +184,8 @@ export function updateDrops(
     .filter((drop) => {
       if (drop.impacted) {
         // Keep until splash and trail are both done
-        return drop.impactAge < 80;
+        // dustCloud particles can live ~120 frames so use 130 as the hard cap
+        return drop.impactAge < 130;
       }
       return drop.y < canvasHeight + drop.radius * 2;
     });

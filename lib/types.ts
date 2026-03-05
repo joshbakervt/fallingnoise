@@ -4,7 +4,7 @@ export interface TrailPoint {
   age: number;
 }
 
-export type ImpactStyle = "starburst" | "geometricShatter" | "flashBloom";
+export type ImpactStyle = "tendril" | "inkDrop" | "petalScatter" | "liquidCrown" | "dustCloud";
 
 export interface SplashParticle {
   x: number;
