@@ -12,7 +12,7 @@ export function FallingNoise({
   colorScheme = "coolBlues",
   scale = { root: "E", type: "minorPentatonic" },
   speed = "medium",
-  impactStyle = "geometricShatter",
+  impactStyle = "liquidCrown",
   audioConfig,
   width = "100%",
   height = "100%",
