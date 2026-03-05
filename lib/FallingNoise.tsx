@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FallingNoiseProps } from "./types";
+import type { AudioConfig, FallingNoiseProps } from "./types";
 import { resolveColorScheme } from "./config/colorSchemes";
 import { buildScale } from "./config/musicalScales";
 import { resolvePhysics } from "./engine/dropPhysics";
@@ -13,12 +13,15 @@ export function FallingNoise({
   scale = { root: "E", type: "minorPentatonic" },
   speed = "medium",
   impactStyle = "geometricShatter",
+  audioConfig,
   width = "100%",
   height = "100%",
 }: FallingNoiseProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioEngineRef = useRef<AudioEngine | null>(null);
+  const audioConfigRef = useRef<AudioConfig | undefined>(audioConfig);
+  audioConfigRef.current = audioConfig;
   const [started, setStarted] = useState(false);
 
   const colors = useMemo(() => resolveColorScheme(colorScheme), [colorScheme]);
@@ -75,9 +78,20 @@ export function FallingNoise({
     };
   }, []);
 
+  // Apply audio config changes after the engine is running
+  useEffect(() => {
+    if (audioEngineRef.current) {
+      audioEngineRef.current.updateConfig(audioConfig ?? {});
+    }
+  }, [audioConfig]);
+
   const handleStart = useCallback(async () => {
     const engine = new AudioEngine();
     await engine.start();
+    // Apply whatever config was set before the user clicked Start
+    if (audioConfigRef.current) {
+      engine.updateConfig(audioConfigRef.current);
+    }
     audioEngineRef.current = engine;
     setStarted(true);
   }, []);

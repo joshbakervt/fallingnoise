@@ -9,5 +9,7 @@ export type {
   ColorSchemeValue,
   ScaleConfig,
   ImpactStyle,
+  WaveformType,
+  AudioConfig,
   FallingNoiseProps,
 } from "./types";

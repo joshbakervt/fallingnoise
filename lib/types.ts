@@ -47,6 +47,19 @@ export interface PhysicsConfig {
 
 export type SpeedTier = "slow" | "medium" | "fast";
 
+export type WaveformType = "sine" | "triangle" | "square" | "sawtooth";
+
+export interface AudioConfig {
+  waveform?: WaveformType;
+  reverbWet?: number;     // 0–1
+  reverbDecay?: number;   // 0.5–6 seconds
+  delayTime?: number;     // 0–1 seconds
+  delayFeedback?: number; // 0–0.85
+  delayWet?: number;      // 0–1
+  bitDepth?: number;      // 2–16 (16 = clean)
+  bitcrusherWet?: number; // 0–1
+}
+
 export type ColorSchemeName =
   | "coolBlues"
   | "forestGreens"
@@ -75,6 +88,7 @@ export interface FallingNoiseProps {
   scale?: ScaleConfig;
   speed?: SpeedTier;
   impactStyle?: ImpactStyle;
+  audioConfig?: AudioConfig;
   width?: string | number;
   height?: string | number;
 }
